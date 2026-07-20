@@ -39,8 +39,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-img,
-video {
+img {
   display: block;
   max-width: 100%;
 }
@@ -67,7 +66,7 @@ input {
   border: 0;
 }
 
-/* Atmosphere — full-bleed visual plane */
+/* Atmosphere — painted light field */
 .atmosphere {
   position: fixed;
   inset: 0;
@@ -76,28 +75,81 @@ input {
   pointer-events: none;
 }
 
-.atmosphere__video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(1.08);
-  opacity: 0.28;
-  filter: saturate(0.85) contrast(1.05);
-}
-
-.atmosphere__wash {
+.atmosphere__base {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 55% at 50% -10%, rgba(31, 111, 120, 0.35), transparent 55%),
-    radial-gradient(ellipse 60% 45% at 100% 100%, rgba(196, 92, 38, 0.22), transparent 50%),
-    linear-gradient(180deg, rgba(18, 21, 28, 0.55) 0%, rgba(18, 21, 28, 0.82) 55%, var(--ink) 100%);
+    linear-gradient(165deg, #0e1218 0%, #161b24 42%, #10151c 100%);
+}
+
+.atmosphere__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  will-change: transform;
+}
+
+.atmosphere__orb--a {
+  width: min(70vw, 520px);
+  height: min(70vw, 520px);
+  top: -12%;
+  left: 50%;
+  translate: -50% 0;
+  background: radial-gradient(circle, rgba(31, 111, 120, 0.55) 0%, transparent 70%);
+  animation: drift-a 18s ease-in-out infinite alternate;
+}
+
+.atmosphere__orb--b {
+  width: min(55vw, 420px);
+  height: min(55vw, 420px);
+  right: -8%;
+  bottom: 8%;
+  background: radial-gradient(circle, rgba(196, 92, 38, 0.42) 0%, transparent 72%);
+  animation: drift-b 22s ease-in-out infinite alternate;
+}
+
+.atmosphere__orb--c {
+  width: min(45vw, 340px);
+  height: min(45vw, 340px);
+  left: -6%;
+  bottom: 22%;
+  background: radial-gradient(circle, rgba(184, 212, 214, 0.18) 0%, transparent 70%);
+  animation: drift-c 16s ease-in-out infinite alternate;
+}
+
+.atmosphere__beam {
+  position: absolute;
+  inset: -20% -10%;
+  background:
+    conic-gradient(
+      from 210deg at 50% 40%,
+      transparent 0deg,
+      rgba(232, 228, 220, 0.045) 40deg,
+      transparent 90deg,
+      rgba(31, 111, 120, 0.08) 160deg,
+      transparent 220deg,
+      rgba(196, 92, 38, 0.06) 280deg,
+      transparent 360deg
+    );
+  animation: beam-turn 48s linear infinite;
+}
+
+.atmosphere__mesh {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgba(232, 228, 220, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 228, 220, 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, #000 20%, transparent 75%);
 }
 
 .atmosphere__grain {
   position: absolute;
   inset: 0;
-  opacity: 0.07;
+  opacity: 0.09;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
 }
@@ -121,22 +173,14 @@ input {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
   text-decoration: none;
-}
-
-.brand__logo {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 6px;
-  object-fit: cover;
 }
 
 .brand__name {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: 0.02em;
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
 }
 
 .ghost-btn,
@@ -537,6 +581,39 @@ input {
 }
 
 @keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes drift-a {
+  from {
+    transform: translate3d(-4%, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6%, 8%, 0) scale(1.08);
+  }
+}
+
+@keyframes drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-10%, -6%, 0) scale(1.12);
+  }
+}
+
+@keyframes drift-c {
+  from {
+    transform: translate3d(0, 4%, 0);
+  }
+  to {
+    transform: translate3d(8%, -4%, 0);
+  }
+}
+
+@keyframes beam-turn {
   to {
     transform: rotate(360deg);
   }

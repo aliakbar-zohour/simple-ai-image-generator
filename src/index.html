@@ -8,7 +8,6 @@
       content="Turn words into images. Describe a scene and generate unique AI artwork instantly."
     />
     <title>Lumina — AI Image Generator</title>
-    <link rel="shortcut icon" href="assets/logo.png" type="image/png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,21 +24,17 @@
     </div>
 
     <div class="atmosphere" aria-hidden="true">
-      <video
-        class="atmosphere__video"
-        src="assets/back.mp4"
-        autoplay
-        muted
-        loop
-        playsinline
-      ></video>
-      <div class="atmosphere__wash"></div>
+      <div class="atmosphere__base"></div>
+      <div class="atmosphere__orb atmosphere__orb--a"></div>
+      <div class="atmosphere__orb atmosphere__orb--b"></div>
+      <div class="atmosphere__orb atmosphere__orb--c"></div>
+      <div class="atmosphere__beam"></div>
+      <div class="atmosphere__mesh"></div>
       <div class="atmosphere__grain"></div>
     </div>
 
     <header class="site-header">
       <a class="brand" href="/" aria-label="Lumina home">
-        <img class="brand__logo" src="assets/logo.png" alt="" width="36" height="36" />
         <span class="brand__name">Lumina</span>
       </a>
       <button type="button" class="ghost-btn" id="settings-btn" aria-label="API settings">
