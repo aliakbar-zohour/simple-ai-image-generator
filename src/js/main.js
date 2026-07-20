@@ -1,111 +1,204 @@
-// Say Hello To New Ai Image Generator
+const STORAGE_KEY = "lumina_hf_token";
+const MAX_IMAGES = 4;
+const MODEL = "black-forest-labs/FLUX.1-schnell";
+const API_URL = `https://router.huggingface.co/hf-inference/models/${MODEL}`;
+const FALLBACK_PROMPTS = [
+  "A quiet harbor at dawn, soft fog, amber lights reflecting on water",
+  "An old botanical greenhouse at dusk, glass and vines, warm lamplight",
+  "Surreal desert dunes under a turquoise sky, long shadows",
+  "A cozy reading nook by a rain-streaked window, candlelight",
+];
 
-const apiKey = process.env.HUGGING_FACE_API_KEY;
+const generateBtn = document.getElementById("generate");
+const promptInput = document.getElementById("user-prompt");
+const form = document.getElementById("form");
+const loading = document.getElementById("loading");
+const imageGrid = document.getElementById("image-grid");
+const errorEl = document.getElementById("error");
+const gallery = document.getElementById("gallery");
+const splash = document.getElementById("splash");
+const settingsBtn = document.getElementById("settings-btn");
+const settingsDialog = document.getElementById("settings-dialog");
+const settingsForm = document.getElementById("settings-form");
+const apiKeyInput = document.getElementById("api-key");
 
-const maxImage = 4;
-
-const selectedImageNumber = undefined;
-
-// Function To Generate Random Number Between min and max number
 function getRandomNumber(min, max) {
-  return Math.floor(Math.random() * (min - max + 1)) + min;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Function To Disable The Generate Button During Processing
-function disableGenerateButton() {
-  document.getElementById("generate").disabled = true;
+function getApiKey() {
+  return (
+    localStorage.getItem(STORAGE_KEY) ||
+    (typeof window !== "undefined" && window.HF_API_KEY) ||
+    ""
+  );
 }
 
-// Function To Disable The Generate Button After Process
-function enableGenerateButton() {
-  document.getElementById("generate").disabled = false;
+function setApiKey(token) {
+  const trimmed = token.trim();
+  if (trimmed) {
+    localStorage.setItem(STORAGE_KEY, trimmed);
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
 }
 
-// Function To Clear Image Grid
+function setLoading(isLoading) {
+  loading.hidden = !isLoading;
+  gallery.setAttribute("aria-busy", String(isLoading));
+  generateBtn.disabled = isLoading;
+  promptInput.disabled = isLoading;
+}
+
+function clearError() {
+  errorEl.hidden = true;
+  errorEl.textContent = "";
+}
+
+function showError(message) {
+  errorEl.textContent = message;
+  errorEl.hidden = false;
+}
+
 function clearImageGrid() {
-  const imageGrid = document.getElementById("image-grid");
   imageGrid.innerHTML = "";
 }
 
-// Function To Generate Images
-async function generateImages(input) {
-  disableGenerateButton();
-  clearImageGrid();
-
-  const loading = document.getElementById("loading");
-  loading.style.display = "block";
-
-  const imageUrls = [];
-
-  for (let i = 0; i < maxImage; i++) {
-    // Generate a Random Number Between 1 And 10000 And Append It To The Prompt
-    const randomNumber = getRandomNumber(1, 10000);
-    const prompt = `${input} ${randomNumber}`;
-    // We Added Random Number To Prompt To Create Diffrent Results
-
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/prompthero/openjourney",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({ inputs: prompt }),
-      }
-    );
-
-    if (!response.ok) {
-      const error = document.createElement("h2");
-      error.style.color = "red";
-      error.style.fontSize = "1.2rem";
-      const result = document.getElementById("result");
-      error.innerHTML = response.text();
-      result.appendChild(error);
-    }
-    const blob = await response.blob();
-    const imgUrl = URL.createObjectURL(blob);
-
-    imageUrls.push(imgUrl);
-
-    const img = document.createElement("img");
-    img.src = imgUrl;
-    img.alt = `art-${i + 1}`;
-    img.onclick = () => downloadImage(imgUrl, i);
-    document.getElementById("image-grid").appendChild(img);
-  }
-  loading.style.display = "none";
-  enableGenerateButton();
-  // Reset Selected Image Number
-  selectedImageNumber = null;
-}
-
-// Function To Fetch Data After Clicking Generate Button
-document.getElementById("generate").addEventListener("click", () => {
-  const input = document.getElementById("user-prompt").value;
-  console.log(input);
-  generateImages(input);
-});
-
-// Function To Fetch Data On Submit Event
-document.getElementById("form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const input = document.getElementById("user-prompt").value;
-  console.log(input);
-  generateImages(input);
-});
-
-// Function To Download Image's
 function downloadImage(imgUrl, imageNumber) {
   const link = document.createElement("a");
   link.href = imgUrl;
-  // Set Filename Based On The Selected Image
-  link.download = `image-${imageNumber + 1}.jpg`;
+  link.download = `lumina-${imageNumber + 1}.png`;
+  document.body.appendChild(link);
   link.click();
+  link.remove();
 }
 
-// Reamove Loading Page After Document Loaded
+function appendImage(imgUrl, index) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "image-card";
+  card.setAttribute("aria-label", `Download generated image ${index + 1}`);
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("splash").classList.add("loaded");
+  const img = document.createElement("img");
+  img.src = imgUrl;
+  img.alt = `Generated artwork ${index + 1}`;
+  img.loading = "lazy";
+
+  card.appendChild(img);
+  card.addEventListener("click", () => downloadImage(imgUrl, index));
+  imageGrid.appendChild(card);
+}
+
+async function generateOneImage(prompt, apiKey) {
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      inputs: prompt,
+      parameters: {
+        seed: getRandomNumber(1, 999999),
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    let detail = `Request failed (${response.status})`;
+    const text = await response.text().catch(() => "");
+    if (text) {
+      try {
+        const data = JSON.parse(text);
+        detail = data.error || data.message || text;
+      } catch {
+        detail = text;
+      }
+    }
+    throw new Error(detail);
+  }
+
+  const blob = await response.blob();
+  if (!blob.type.startsWith("image/")) {
+    throw new Error("The API did not return an image. Check your token and model access.");
+  }
+
+  return URL.createObjectURL(blob);
+}
+
+async function generateImages(rawInput) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showError("Add your Hugging Face API token in Settings to generate images.");
+    settingsDialog.showModal();
+    return;
+  }
+
+  const basePrompt =
+    rawInput.trim() ||
+    FALLBACK_PROMPTS[getRandomNumber(0, FALLBACK_PROMPTS.length - 1)];
+
+  clearError();
+  clearImageGrid();
+  setLoading(true);
+
+  try {
+    const tasks = Array.from({ length: MAX_IMAGES }, (_, i) => {
+      const prompt = `${basePrompt}, variation ${i + 1}`;
+      return generateOneImage(prompt, apiKey);
+    });
+
+    const results = await Promise.allSettled(tasks);
+    let successCount = 0;
+
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        appendImage(result.value, index);
+        successCount += 1;
+      }
+    });
+
+    if (successCount === 0) {
+      const firstError = results.find((r) => r.status === "rejected");
+      throw firstError?.reason || new Error("Could not generate images.");
+    }
+
+    if (successCount < MAX_IMAGES) {
+      showError(
+        `Generated ${successCount} of ${MAX_IMAGES} images. Some requests failed — try again.`
+      );
+    }
+
+    gallery.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Something went wrong while generating.";
+    showError(message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  generateImages(promptInput.value);
+});
+
+settingsBtn.addEventListener("click", () => {
+  apiKeyInput.value = getApiKey();
+  settingsDialog.showModal();
+  apiKeyInput.focus();
+});
+
+settingsForm.addEventListener("submit", (event) => {
+  const submitter = event.submitter;
+  if (submitter && submitter.value === "cancel") {
+    return;
+  }
+  setApiKey(apiKeyInput.value);
+});
+
+window.addEventListener("load", () => {
+  splash.classList.add("loaded");
+  splash.setAttribute("aria-hidden", "true");
 });
